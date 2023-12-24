@@ -1,5 +1,5 @@
 # CE
-Code for a Chinese paper being prepared for submission
+Simple and effective code for a Chinese paper being prepared for submission
 
 Since the original data is not available, SEU dataset is utilised to to validate the proposed method.
 
