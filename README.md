@@ -5,7 +5,7 @@ Since the SPSS dataset is not available, SEU dataset is utilised to validate the
 
      data download: https://github.com/cathysiyu/Mechanical-datasets/tree/master/gearbox
 
-Retain csv files only
+Retain csv files only.
 
 
 
