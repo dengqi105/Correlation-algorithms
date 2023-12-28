@@ -9,7 +9,10 @@ import pandas as pd
 import os
 
 from scipy.linalg import logm
-from sklearn import svm
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 
 def get_sample(labels, train_number, class_num):
@@ -81,6 +84,22 @@ def get_corr_matrix(sensor_seg, K, corr, kernel_size):
     return all_samples
 
 
+def predict_label(clf_name):
+    clfs = {'Ridge': RidgeClassifier(), 'NB': GaussianNB(), "LR": LogisticRegression(),
+            "LDA": LinearDiscriminantAnalysis(), 'SVC_linear': SVC(kernel='linear'),
+            'SVC_Gaussian': SVC(kernel='rbf'), 'GMSVM': SVC(kernel='precomputed')}
+    model = clfs[clf_name]
+    if clf_name == "GMSVM":
+        G_Tr = np.dot(train_cov, train_cov.T).T
+        G_Te = np.dot(train_cov, test_cov.T)
+        model.fit(G_Tr, train_label)
+        predicted_label = model.predict(G_Te.T)
+    else:
+        model.fit(train_cov, train_label)
+        predicted_label = model.predict(test_cov)
+    return predicted_label
+
+
 # %% LOAD DATA
 sensor = [0, 1, 2, 3, 4, 5, 6, 7]
 K = len(sensor)
@@ -119,13 +138,16 @@ for i in range(len(labels)):
         datalabel[j, i] = labels[i]
 
 # %% TRAIN AND TEST
-corr_set = ["Euclidean", "cross-corr", "cov", "pearson", "linear", "Gaussian", "Laplace"]
-corr = corr_set[1]  # change correlation algorithm
+corr_names = ["Euclidean", "cross-corr", "cov", "pearson", "linear", "Gaussian", "Laplace"]
+corr = corr_names[-1]  # change correlation algorithm
+clf_names = ["Ridge", "NB", "LR", "LDA", "SVC_linear", "SVC_Gaussian", "GMSVM"]
+clf = clf_names[2]  # change classifer
 kernelSize = 1.8  # Gaussian-0.1;Laplace-1.8
 train_number = 5
 repeat_num = 20
 
 print("correlation algorithm:", corr)
+print("classifer:", clf)
 print("train_number:", train_number)
 
 all_M = get_corr_matrix(segs, K, corr=corr, kernel_size=kernelSize)
@@ -144,10 +166,6 @@ for i in range(repeat_num):
     train_cov = np.transpose(np.reshape(train, (K * K, train.shape[2])))
     test = corr_feature
     test_cov = np.transpose(np.reshape(test, (K * K, test.shape[2])))
-    G_Tr = np.dot(train_cov, train_cov.T).T
-    G_Te = np.dot(train_cov, test_cov.T)
-    model = svm.SVC(kernel='precomputed')
-    model.fit(G_Tr, train_label)
-    predict_label = model.predict(G_Te.T)
-    Acc[i] = np.sum(test_label == predict_label[test_id.astype(int)]) / len(test_label)
-print(f'Acc: {np.mean(Acc)}')
+    predicted_label = predict_label(clf)
+    Acc[i] = np.sum(test_label == predicted_label[test_id.astype(int)]) / len(test_label)
+print('Acc:{}'.format(np.mean(Acc), 'Std:{}'.format(np.std(Acc))))
